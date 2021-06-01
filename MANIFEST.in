@@ -1,7 +1,7 @@
 include LICENSE.txt
 include README.md
 
-include sagemaker_studio_sparkmagic_conf/data/**
+global-include data/**
 
 # Patterns to exclude from any directory
 global-exclude *~
