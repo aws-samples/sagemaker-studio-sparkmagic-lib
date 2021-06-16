@@ -14,7 +14,8 @@ This is a CLI tool for generating configuration of SparkMagic, Kerberos required
 
 This CLI tool comes pre-installed on Studio SparkMagic Image. It can be used from any notebook created from that image. 
 
-* **Connecting to non-kerberos cluster**: In a notebook cell, execute following commands
+#### Connecting to non-kerberos cluster: 
+In a notebook cell, execute following commands
 
 ```
 %local
@@ -34,7 +35,9 @@ Please complete following steps to complete the connection
 1. Restart kernel to complete your setup. This is required so SparkMagic can pickup generated configuration
 ```
 
-* **Connecting to kerberos cluster**: Its very simialr to non-kerberos cluster, except you can pass 
+#### Connecting to kerberos cluster: 
+
+It's very similar to non-kerberos cluster, except you can pass 
 
 ```
 !sm-sparkmagic connect --cluster-id "j-xxxxxxxx" --user-name "ec2-user"
@@ -48,7 +51,8 @@ Please follow below steps to complete the setup:
 2. Restart kernel to complete your setup. This is required so SparkMagic can pickup generated configuration
 ```
 
-* **Connecting to EMR cluster in another account**: To setup configuration for EMR cluster in another account, run following command
+#### Connecting to EMR cluster in another account 
+To setup configuration for EMR cluster in another account, run following command
 
 ```
 %local
@@ -56,6 +60,26 @@ Please follow below steps to complete the setup:
 !sm-sparkmagic connect --cluster-id "j-xxxxx" --role-arn "arn:aws:iam::222222222222:role/role-on-emr-cluster-account"
 ```
 
+#### Connecting to EMR cluster in a private subnet over VPC Endpoints
+
+There is a bug in [botocore](https://github.com/boto/botocore/issues/2376) which requires the user to override the endpoint for EMR clients when using over [VPC Endpoints](https://docs.aws.amazon.com/emr/latest/ManagementGuide/interface-vpc-endpoint.html). As this library uses the default boto3 configuration, this may cause issues while connecting to clusters over VPC Endpoints. 
+
+As a workaround, run the following code snippet to override the default EMR endpoint in boto3
+
+```python
+%local
+import botocore
+import json
+import os
+
+with open(os.path.join(os.path.dirname(botocore.__file__), 'data', 'endpoints.json'), 'r+') as f:
+    data = json.load(f)
+    # Use [1] for aws-cn
+    data['partitions'][0]['services']['elasticmapreduce']['defaults']['sslCommonName'] = '{service}.{region}.{dnsSuffix}'
+    f.seek(0)
+    json.dump(data, f)
+    f.truncate()
+```
 
 ### FAQ
 * Can I connect to multiple clusters at same time?
