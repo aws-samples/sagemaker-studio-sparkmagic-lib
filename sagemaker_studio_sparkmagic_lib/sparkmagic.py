@@ -70,7 +70,7 @@ def connect_to_emr_cluster(
             # user has not provided a user name as input, we use place holder to hint user to use actual user name
             krb_user_name = "$user"
         user_steps.append(
-            f"Open the image terminal and run 'kinit {krb_user_name}'(user_name: {krb_user_name}) to get kerberos ticket"
+            f"Open the image terminal and run 'kinit {cluster.get_kinit_user_name(krb_user_name)}' to get kerberos ticket"
         )
 
     # auto-restart kernel
@@ -129,7 +129,7 @@ def _write_spark_magic_conf(cluster, user_name, skip_krb, spark_magic_override_p
             "delegate": False,
             "force_preemptive": True,
             "principal": "",
-            "hostname_override": cluster.primary_node_private_dns_name(),
+            "hostname_override": cluster.krb_hostname_override(),
             "sanitize_mutual_error_response": True,
             "send_cbt": False,
         }
