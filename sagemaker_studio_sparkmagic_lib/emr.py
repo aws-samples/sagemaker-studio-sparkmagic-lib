@@ -290,4 +290,3 @@ class EMRCluster:
 
     def _get_region(self):
         return os.getenv("AWS_REGION", "us-west-2")
-

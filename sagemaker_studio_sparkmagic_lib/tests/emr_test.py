@@ -42,6 +42,7 @@ def test_get_cluster_happy_case_non_kerberos_with_pagination():
                     "Id": "j-7DD9ZR01DAU99",
                 }
             ],
+            "Marker": "nextToken",
         }
         list_instances_response_page_2 = {
             "Instances": [
@@ -331,4 +332,3 @@ def test_external_kdc_cluster(mock_utils):
         assert emr_cluster.get_krb_conf() == krb_props
         assert emr_cluster.get_kinit_user_name("ec2-user") == "ec2-user@MYADDOMAIN.COM"
         assert emr_cluster.krb_hostname_override() == "ip-172-31-1-113.test.me"
-
