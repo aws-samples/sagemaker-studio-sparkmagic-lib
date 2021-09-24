@@ -74,7 +74,11 @@ class EMRCluster:
 
     def _get_instances(self, emr, cluster_id):
         try:
-            list_instances_response = emr.list_instances(ClusterId=cluster_id)
+            paginator = emr.get_paginator("list_instances")
+            page_iterator = paginator.paginate(ClusterId=cluster_id)
+            instances = []
+            for page in page_iterator:
+                instances.extend(page["Instances"])
         except botocore.exceptions.ClientError as ce:
             logger.debug(
                 f"Failed to list instances in  EMR cluster({cluster_id}) details. {ce.response}"
@@ -83,8 +87,8 @@ class EMRCluster:
                 f"Unable to list instances in EMR Cluster(Id: {cluster_id}) details using list-instances API."
                 f' Error: {ce.response["Error"]}'
             ) from None
-        logger.debug(f"List instances response: {list_instances_response}")
-        self._instances = list_instances_response["Instances"]
+        logger.debug(f"List instances response: {instances}")
+        self._instances = instances
 
     def _get_security_conf(self, emr):
         if "SecurityConfiguration" not in self._cluster:
@@ -286,3 +290,4 @@ class EMRCluster:
 
     def _get_region(self):
         return os.getenv("AWS_REGION", "us-west-2")
+

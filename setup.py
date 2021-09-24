@@ -7,7 +7,7 @@ required_packages = ["boto3>=1.10.44, < 2.0"]
 
 setuptools.setup(
     name="sagemaker_studio_sparkmagic_lib",
-    version="0.1.2",
+    version="0.1.3",
     author="Amazon Web Services",
     description="Python Command line tool to manage configuration of sparkmagic kernels on studio",
     long_description=long_description,

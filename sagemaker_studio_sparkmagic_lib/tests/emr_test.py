@@ -13,13 +13,54 @@ def test_get_cluster_happy_case_non_kerberos():
         describe_cluster_response = {
             "Cluster": {"Id": "j-3DD9ZR01DAU14", "Name": "Mycluster"}
         }
-        list_instances_response = {"Instances": [{"Id": "j-3DD9ZR01DAU14",}]}
+        list_instances_response = {
+            "Instances": [
+                {
+                    "Id": "j-3DD9ZR01DAU14",
+                }
+            ]
+        }
         emr_stub.add_response("describe_cluster", describe_cluster_response)
         emr_stub.add_response("list_instances", list_instances_response)
         emr_cluster = EMRCluster(cluster_id="j-3DD9ZR01DAU14", emr=emr)
 
         assert emr_cluster._cluster == describe_cluster_response["Cluster"]
         assert emr_cluster._instances == list_instances_response["Instances"]
+        assert emr_cluster._sec_conf is None
+        assert not emr_cluster.is_krb_cluster
+
+
+def test_get_cluster_happy_case_non_kerberos_with_pagination():
+    emr = boto3.client("emr", region_name="us-west-2")
+    with Stubber(emr) as emr_stub:
+        describe_cluster_response = {
+            "Cluster": {"Id": "j-3DD9ZR01DAU14", "Name": "Mycluster"}
+        }
+        list_instances_response_page_1 = {
+            "Instances": [
+                {
+                    "Id": "j-7DD9ZR01DAU99",
+                }
+            ],
+        }
+        list_instances_response_page_2 = {
+            "Instances": [
+                {
+                    "Id": "j-3DD9ZR01DAU14",
+                }
+            ]
+        }
+        emr_stub.add_response("describe_cluster", describe_cluster_response)
+        emr_stub.add_response("list_instances", list_instances_response_page_1)
+        emr_stub.add_response("list_instances", list_instances_response_page_2)
+        emr_cluster = EMRCluster(cluster_id="j-3DD9ZR01DAU14", emr=emr)
+
+        assert emr_cluster._cluster == describe_cluster_response["Cluster"]
+        assert (
+            emr_cluster._instances
+            == list_instances_response_page_1["Instances"]
+            + list_instances_response_page_2["Instances"]
+        )
         assert emr_cluster._sec_conf is None
         assert not emr_cluster.is_krb_cluster
 
@@ -34,7 +75,13 @@ def test_get_cluster_happy_case_kerberos():
                 "SecurityConfiguration": "kerb-security-config",
             }
         }
-        list_instances_response = {"Instances": [{"Id": "j-3DD9ZR01DAU14",}]}
+        list_instances_response = {
+            "Instances": [
+                {
+                    "Id": "j-3DD9ZR01DAU14",
+                }
+            ]
+        }
         describe_sec_conf_response = {
             "Name": "kerb-security-config",
             "SecurityConfiguration": "{}",
@@ -54,7 +101,13 @@ def test_get_cluster_happy_case_kerberos():
 def test_get_bad_cluster():
     emr = boto3.client("emr", region_name="us-west-2")
     with Stubber(emr) as emr_stub:
-        list_instances_response = {"Instances": [{"Id": "j-3DD9ZR01DAU14",}]}
+        list_instances_response = {
+            "Instances": [
+                {
+                    "Id": "j-3DD9ZR01DAU14",
+                }
+            ]
+        }
         emr_stub.add_client_error("describe_cluster", service_error_code=400)
         emr_stub.add_response("list_instances", list_instances_response)
         with pytest.raises(ValueError) as e:
@@ -117,7 +170,10 @@ def test_cluster_dedicated_krb_cluster(mock_utils):
                 }
             },
             "libdefaults": {"default_realm": "KTEST.COM", "ticket_lifetime": "24h"},
-            "domain_realm": {"test.me": "KTEST.COM", ".test.me": "KTEST.COM",},
+            "domain_realm": {
+                "test.me": "KTEST.COM",
+                ".test.me": "KTEST.COM",
+            },
         }
         assert emr_cluster.get_krb_conf() == krb_props
         assert emr_cluster.get_kinit_user_name("ec2-user") == "ec2-user"
@@ -275,3 +331,4 @@ def test_external_kdc_cluster(mock_utils):
         assert emr_cluster.get_krb_conf() == krb_props
         assert emr_cluster.get_kinit_user_name("ec2-user") == "ec2-user@MYADDOMAIN.COM"
         assert emr_cluster.krb_hostname_override() == "ip-172-31-1-113.test.me"
+
