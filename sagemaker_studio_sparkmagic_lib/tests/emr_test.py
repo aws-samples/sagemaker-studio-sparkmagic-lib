@@ -11,12 +11,21 @@ def test_get_cluster_happy_case_non_kerberos():
     emr = boto3.client("emr", region_name="us-west-2")
     with Stubber(emr) as emr_stub:
         describe_cluster_response = {
-            "Cluster": {"Id": "j-3DD9ZR01DAU14", "Name": "Mycluster"}
+            "Cluster": {
+                "Id": "j-3DD9ZR01DAU14",
+                "Name": "Mycluster",
+                "MasterPublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
+            }
         }
         list_instances_response = {
             "Instances": [
                 {
                     "Id": "j-3DD9ZR01DAU14",
+                    "Ec2InstanceId": "i-0736242069217a485",
+                    "PublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
+                    "PublicIpAddress": "34.222.47.14",
+                    "PrivateDnsName": "ip-172-31-1-113.us-west-2.compute.internal",
+                    "PrivateIpAddress": "172.31.1.113",
                 }
             ]
         }
@@ -34,12 +43,21 @@ def test_get_cluster_happy_case_non_kerberos_with_pagination():
     emr = boto3.client("emr", region_name="us-west-2")
     with Stubber(emr) as emr_stub:
         describe_cluster_response = {
-            "Cluster": {"Id": "j-3DD9ZR01DAU14", "Name": "Mycluster"}
+            "Cluster": {
+                "Id": "j-3DD9ZR01DAU14",
+                "Name": "Mycluster",
+                "MasterPublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
+            }
         }
         list_instances_response_page_1 = {
             "Instances": [
                 {
-                    "Id": "j-7DD9ZR01DAU99",
+                    "Id": "j-3DD9ZR01DAU14",
+                    "Ec2InstanceId": "i-0736242069217a485",
+                    "PublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
+                    "PublicIpAddress": "34.222.47.14",
+                    "PrivateDnsName": "ip-172-31-1-113.us-west-2.compute.internal",
+                    "PrivateIpAddress": "172.31.1.113",
                 }
             ],
             "Marker": "nextToken",
@@ -74,12 +92,18 @@ def test_get_cluster_happy_case_kerberos():
                 "Id": "j-3DD9ZR01DAU14",
                 "Name": "Mycluster",
                 "SecurityConfiguration": "kerb-security-config",
+                "MasterPublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
             }
         }
         list_instances_response = {
             "Instances": [
                 {
                     "Id": "j-3DD9ZR01DAU14",
+                    "Ec2InstanceId": "i-0736242069217a485",
+                    "PublicDnsName": "ec2-34-222-47-14.us-west-2.compute.amazonaws.com",
+                    "PublicIpAddress": "34.222.47.14",
+                    "PrivateDnsName": "ip-172-31-1-113.us-west-2.compute.internal",
+                    "PrivateIpAddress": "172.31.1.113",
                 }
             ]
         }
@@ -162,6 +186,10 @@ def test_cluster_dedicated_krb_cluster(mock_utils):
             emr_cluster.primary_node_private_dns_name()
             == "ip-172-31-1-113.us-west-2.compute.internal"
         )
+        assert (
+            emr_cluster.primary_node_public_dns_name()
+            == "ec2-34-222-47-14.us-west-2.compute.amazonaws.com"
+        )
         krb_props = {
             "realms": {
                 "KTEST.COM": {
@@ -228,6 +256,10 @@ def test_cross_realm_krb_cluster(mock_utils):
         assert (
             emr_cluster.primary_node_private_dns_name()
             == "ip-172-31-1-113.us-west-2.compute.internal"
+        )
+        assert (
+            emr_cluster.primary_node_public_dns_name()
+            == "ec2-34-222-47-14.us-west-2.compute.amazonaws.com"
         )
         krb_props = {
             "realms": {
@@ -304,6 +336,10 @@ def test_external_kdc_cluster(mock_utils):
         assert (
             emr_cluster.primary_node_private_dns_name()
             == "ip-172-31-1-113.us-west-2.compute.internal"
+        )
+        assert (
+            emr_cluster.primary_node_public_dns_name()
+            == "ec2-34-222-47-14.us-west-2.compute.amazonaws.com"
         )
         krb_props = {
             "realms": {

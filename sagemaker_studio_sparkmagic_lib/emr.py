@@ -19,6 +19,11 @@ class EMRCluster:
     """
 
     def __init__(self, cluster_id=None, role_arn=None, emr=None):
+        self._cluster = None
+        self._instances = None
+        self._sec_conf = None
+        self._emr_primary_instance = None
+
         if not emr:
             sess = self._get_boto3_session(role_arn)
             emr = sess.client(
@@ -28,6 +33,7 @@ class EMRCluster:
         self._get_instances(emr, cluster_id)
         self._get_security_conf(emr)
         logger.info(f"Successfully read emr cluster({cluster_id}) details")
+        self._identify_emr_primary_instance()
 
     def _get_boto3_session(self, role_arn):
         """
@@ -90,6 +96,30 @@ class EMRCluster:
         logger.debug(f"List instances response: {instances}")
         self._instances = instances
 
+    def _identify_emr_primary_instance(self):
+        """
+        Identifies EMR primary node.
+        """
+        # Primary node public dns can actually be private DNS if EMR cluster is launched in
+        # private subnet hence we check both names. See
+        # https://docs.aws.amazon.com/emr/latest/APIReference/API_Cluster.html
+        primary_node_public_dns = self._cluster["MasterPublicDnsName"]
+        for instance in self._instances:
+            if (
+                "PublicDnsName" in instance
+                and instance["PublicDnsName"] == primary_node_public_dns
+            ) or (
+                "PrivateDnsName" in instance
+                and instance["PrivateDnsName"] == primary_node_public_dns
+            ):
+                self._emr_primary_instance = instance
+
+        if self._emr_primary_instance is None:
+            raise ValueError(
+                f"Failed to find primary node ip address needed to communicate with Livy server."
+                f"Please ensure clusterId{self._cluster['Id']} is correct"
+            ) from None
+
     def _get_security_conf(self, emr):
         if "SecurityConfiguration" not in self._cluster:
             logger.debug(
@@ -129,29 +159,15 @@ class EMRCluster:
 
     def primary_node_private_dns_name(self):
         """
-        Returns primary node private DNS name using describe cluster result
+        Returns primary node private DNS name
         """
-        # Master node public dns can actually be private DNS if EMR cluster is launched in
-        # private subnet hence we check both names. See
-        # https://docs.aws.amazon.com/emr/latest/APIReference/API_Cluster.html
-        master_node_public_dns = self._cluster["MasterPublicDnsName"]
-        for instance in self._instances:
-            if (
-                "PublicDnsName" in instance
-                and instance["PublicDnsName"] == master_node_public_dns
-            ) or (
-                "PrivateDnsName" in instance
-                and instance["PrivateDnsName"] == master_node_public_dns
-            ):
-                master_instance_details = instance
+        return self._emr_primary_instance["PrivateDnsName"]
 
-        if master_instance_details is None:
-            raise ValueError(
-                f"Failed to find primary node ip address needed to communicate with Livy server."
-                f"Please ensure clusterId{self._cluster['Id']} is correct"
-            ) from None
-
-        return master_instance_details["PrivateDnsName"]
+    def primary_node_public_dns_name(self):
+        """
+        Returns primary node public DNS name
+        """
+        return self._emr_primary_instance["PublicDnsName"]
 
     def krb_hostname_override(self):
         """
