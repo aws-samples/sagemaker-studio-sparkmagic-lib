@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.4
+*  Allow surfacing of primary node public dns
+
 ## 0.1.3
 * Paginate list_instances call
 
