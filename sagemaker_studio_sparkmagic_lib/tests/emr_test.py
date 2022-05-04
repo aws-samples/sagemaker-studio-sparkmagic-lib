@@ -39,6 +39,42 @@ def test_get_cluster_happy_case_non_kerberos():
         assert not emr_cluster.is_krb_cluster
 
 
+def test_get_private_cluster_happy_case_non_kerberos():
+    emr = boto3.client("emr", region_name="us-west-2")
+    with Stubber(emr) as emr_stub:
+        describe_cluster_response = {
+            "Cluster": {
+                "Id": "j-3DD9ZR01DAU14",
+                "Name": "Mycluster",
+                "MasterPublicDnsName": "ip-172-31-1-113.us-west-2.compute.internal",
+            }
+        }
+        list_instances_response = {
+            "Instances": [
+                {
+                    "Id": "j-3DD9ZR01DAU14",
+                    "Ec2InstanceId": "i-0736242069217a485",
+                    "PublicDnsName": "",
+                    "PrivateDnsName": "ip-172-31-1-113.us-west-2.compute.internal",
+                    "PrivateIpAddress": "172.31.1.113",
+                }
+            ]
+        }
+        emr_stub.add_response("describe_cluster", describe_cluster_response)
+        emr_stub.add_response("list_instances", list_instances_response)
+        emr_cluster = EMRCluster(cluster_id="j-3DD9ZR01DAU14", emr=emr)
+
+        assert emr_cluster._cluster == describe_cluster_response["Cluster"]
+        assert emr_cluster._instances == list_instances_response["Instances"]
+        assert emr_cluster._sec_conf is None
+        assert not emr_cluster.is_krb_cluster
+        assert (
+            emr_cluster.primary_node_private_dns_name()
+            == "ip-172-31-1-113.us-west-2.compute.internal"
+        )
+        assert emr_cluster.primary_node_public_dns_name() == ""
+
+
 def test_get_cluster_happy_case_non_kerberos_with_pagination():
     emr = boto3.client("emr", region_name="us-west-2")
     with Stubber(emr) as emr_stub:
