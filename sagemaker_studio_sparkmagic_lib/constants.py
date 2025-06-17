@@ -1,0 +1,3 @@
+from sagemaker_jupyterlab_extension_common.dual_stack_utils import is_dual_stack_enabled
+
+USE_DUALSTACK_ENDPOINT = is_dual_stack_enabled()

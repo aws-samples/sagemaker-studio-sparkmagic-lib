@@ -33,6 +33,7 @@ def test_get_domain_search_resolv_does_not_exist(mock_open):
     assert result == utils.get_default_domain_search("eu-west-1")
 
 
+@patch("sagemaker_studio_sparkmagic_lib.utils.USE_DUALSTACK_ENDPOINT", False)
 def test_get_emr_endpoint_url():
     assert (
         utils.get_emr_endpoint_url("us-west-2")
@@ -49,4 +50,24 @@ def test_get_emr_endpoint_url():
     assert (
         utils.get_emr_endpoint_url("us-gov-east-1")
         == "https://elasticmapreduce.us-gov-east-1.amazonaws.com"
+    )
+
+
+@patch("sagemaker_studio_sparkmagic_lib.utils.USE_DUALSTACK_ENDPOINT", True)
+def test_get_emr_endpoint_url_use_dualstack_endpoints():
+    assert (
+        utils.get_emr_endpoint_url("us-west-2")
+        == "https://elasticmapreduce.us-west-2.api.aws"
+    )
+    assert (
+        utils.get_emr_endpoint_url("cn-north-1")
+        == "https://elasticmapreduce.cn-north-1.api.amazonwebservices.com.cn"
+    )
+    assert (
+        utils.get_emr_endpoint_url("eu-west-1")
+        == "https://elasticmapreduce.eu-west-1.api.aws"
+    )
+    assert (
+        utils.get_emr_endpoint_url("us-gov-east-1")
+        == "https://elasticmapreduce.us-gov-east-1.api.aws"
     )

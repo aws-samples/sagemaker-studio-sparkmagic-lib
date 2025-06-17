@@ -6,6 +6,7 @@ import boto3
 import botocore
 import logging
 from sagemaker_studio_sparkmagic_lib import utils
+from sagemaker_studio_sparkmagic_lib.constants import USE_DUALSTACK_ENDPOINT
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -43,11 +44,19 @@ class EMRCluster:
             return boto3.session.Session()
         else:
             logger.info(f"Assuming role: {role_arn}")
-            sts_client = boto3.client("sts")
+            cfg = botocore.client.Config(
+                use_dualstack_endpoint=USE_DUALSTACK_ENDPOINT,
+            )
+            sts_client = boto3.client("sts", config=cfg)
             try:
                 assume_role_object = sts_client.assume_role(
                     RoleArn=role_arn, RoleSessionName="SageMakerStudioUser"
                 )
+            except (
+                botocore.exceptions.EndpointConnectionError,
+                botocore.exceptions.ConnectTimeoutError,
+            ) as e:
+                self.handle_endpoint_connection_errors(e)
             except botocore.exceptions.ClientError as ce:
                 logger.debug(
                     f"Failed to assume role: ({role_arn}) details. {ce.response}"
@@ -67,6 +76,11 @@ class EMRCluster:
     def _get_cluster(self, emr, cluster_id):
         try:
             describe_cluster_response = emr.describe_cluster(ClusterId=cluster_id)
+        except (
+            botocore.exceptions.EndpointConnectionError,
+            botocore.exceptions.ConnectTimeoutError,
+        ) as e:
+            self.handle_endpoint_connection_errors(e)
         except botocore.exceptions.ClientError as ce:
             logger.debug(
                 f"Failed to get EMR cluster({cluster_id}) details. {ce.response}"
@@ -85,6 +99,11 @@ class EMRCluster:
             instances = []
             for page in page_iterator:
                 instances.extend(page["Instances"])
+        except (
+            botocore.exceptions.EndpointConnectionError,
+            botocore.exceptions.ConnectTimeoutError,
+        ) as e:
+            self.handle_endpoint_connection_errors(e)
         except botocore.exceptions.ClientError as ce:
             logger.debug(
                 f"Failed to list instances in  EMR cluster({cluster_id}) details. {ce.response}"
@@ -133,6 +152,11 @@ class EMRCluster:
             describe_sec_conf_response = emr.describe_security_configuration(
                 Name=security_conf
             )
+        except (
+            botocore.exceptions.EndpointConnectionError,
+            botocore.exceptions.ConnectTimeoutError,
+        ) as e:
+            self.handle_endpoint_connection_errors(e)
         except botocore.exceptions.ClientError as ce:
             logger.debug(
                 f"Failed to get security configuration details({security_conf}) of EMR cluster({cluster_id})"
@@ -306,3 +330,10 @@ class EMRCluster:
 
     def _get_region(self):
         return os.getenv("AWS_REGION", "us-west-2")
+
+    def handle_endpoint_connection_errors(self, error):
+        """Handle endpoint connection errors consistently across client methods."""
+        logging.error("{} {}".format(str(error), traceback.format_exc()))
+        raise ConnectionError(
+            "Could not connect to EMR cluster. Please check your network settings or contact support for assistance."
+        )

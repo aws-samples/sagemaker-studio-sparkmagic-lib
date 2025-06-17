@@ -1,6 +1,9 @@
 import logging
 import sys
 import boto3
+import botocore
+
+from sagemaker_studio_sparkmagic_lib.constants import USE_DUALSTACK_ENDPOINT
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -21,8 +24,13 @@ def get_emr_endpoint_url(region):
     As per recommendation we construct EMR endpoints to match https://docs.aws.amazon.com/general/latest/gr/emr.html
     """
     sess = boto3.session.Session()
+    cfg = botocore.client.Config(
+        use_dualstack_endpoint=USE_DUALSTACK_ENDPOINT,
+    )
     # tokenize endpoint url of format https://us-west-2.elasticmapreduce.amazonaws.com and ignore first two tokens
-    boto_url_tokens = sess.client("emr", region_name=region)._endpoint.host.split(".")
+    boto_url_tokens = sess.client(
+        "emr", region_name=region, config=cfg
+    )._endpoint.host.split(".")
     return f"https://elasticmapreduce.{region}.{'.'.join(boto_url_tokens[2:])}"
 
 

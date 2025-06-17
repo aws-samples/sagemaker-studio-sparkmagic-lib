@@ -3,11 +3,14 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-required_packages = ["boto3>=1.10.44, < 2.0"]
+required_packages = [
+    "boto3>=1.10.44, < 2.0", 
+    "sagemaker-jupyterlab-extension-common>=0.2.2, <1.0",
+]
 
 setuptools.setup(
     name="sagemaker_studio_sparkmagic_lib",
-    version="0.1.4",
+    version="0.2.0",
     author="Amazon Web Services",
     description="Python Command line tool to manage configuration of sparkmagic kernels on studio",
     long_description=long_description,
